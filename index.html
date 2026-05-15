@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wingfoil · GFS Open-Meteo</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #eeecea;
+  --border: #d8d5cf;
+  --border2: #c8c4bc;
+  --text: #1a1814;
+  --muted: #7a756c;
+  --faint: #a8a39a;
+  --go: #0a6640;
+  --go-bg: #d4f0e2;
+  --go-border: #6fcca0;
+  --strong: #143d25;
+  --strong-bg: #8ed8ac;
+  --strong-border: #4db87e;
+  --maybe: #7a4a00;
+  --maybe-bg: #fde9c0;
+  --maybe-border: #f0b840;
+  --bad: #555050;
+  --bad-bg: #ebebeb;
+  --bad-border: #c8c4bc;
+  --accent: #1a4e8a;
+  --tag-bg: #e8eef8;
+  --tag-text: #1a4e8a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; line-height: 1.5; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.page { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1.5rem 2.5rem; }
+
+/* HEADER */
+.header { border-bottom: 2px solid var(--text); padding-bottom: 1rem; margin-bottom: 1.25rem; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+.title { font-family: 'IBM Plex Mono', monospace; font-size: clamp(18px, 3vw, 28px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.title .sub { font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: 0; margin-top: 4px; font-family: 'IBM Plex Sans', sans-serif; }
+.model-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; background: var(--tag-bg); color: var(--tag-text); border: 1px solid #b8ccee; padding: 4px 10px; border-radius: 3px; white-space: nowrap; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 8px; font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.meta-row b { color: var(--text); }
+
+/* LEGEND */
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
+.leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.leg-swatch { width: 22px; height: 8px; border-radius: 2px; border: 1px solid; }
+
+/* SPOT CARD */
+.spot { background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; margin-bottom: 1rem; overflow: hidden; }
+.spot-head { padding: 7px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; background: var(--surface2); }
+.spot-name { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px; }
+.spot-coord { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--faint); }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; color: var(--muted); padding: 5px 8px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface); }
+thead th.date-col { text-align: left; min-width: 60px; }
+thead th.window-header { background: var(--surface2); border-left: 2px solid var(--border2); padding: 5px 8px; }
+.window-label { font-size: 9px; color: var(--faint); display: block; font-weight: 400; }
+
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #faf9f7; }
+
+td { padding: 4px 8px; text-align: center; vertical-align: middle; }
+td.date-cell { text-align: left; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
+.dow { font-size: 11px; font-weight: 600; display: inline; }
+.ddate { font-size: 10px; color: var(--muted); display: inline; margin-left: 5px; }
+
+td.window-cell { border-left: 2px solid var(--border); }
+
+/* horizontal cell layout */
+.cell-inner { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.wind-val { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 400; line-height: 1; white-space: nowrap; color: var(--muted); }
+.gust-val { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.dir-val  { font-size: 10px; color: var(--faint); white-space: nowrap; }
+.verdict  { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 500; padding: 1px 5px; border-radius: 2px; border: 1px solid; white-space: nowrap; letter-spacing: .03em; }
+.sep { color: var(--border2); font-size: 10px; }
+
+/* verdict colors */
+.v-strong { background: var(--strong-bg); color: var(--strong); border-color: var(--strong-border); font-weight: 600; }
+.v-go     { background: var(--go-bg);     color: var(--go);     border-color: var(--go-border); }
+.v-maybe  { background: var(--maybe-bg);  color: var(--maybe);  border-color: var(--maybe-border); }
+.v-bad    { background: var(--bad-bg);    color: var(--bad);    border-color: var(--bad-border); }
+
+td.v-strong-cell { background: color-mix(in srgb, var(--strong-bg) 65%, transparent); }
+td.v-go-cell     { background: color-mix(in srgb, var(--go-bg) 50%, transparent); }
+td.v-maybe-cell  { background: color-mix(in srgb, var(--maybe-bg) 50%, transparent); }
+
+/* rain indicator */
+.rain-bar { height: 3px; border-radius: 1px; background: var(--accent); opacity: .5; margin-top: 2px; }
+
+/* loading / error */
+.loading-row td { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 1.5rem; text-align: center; }
+
+/* NOTE */
+.note { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 3px; line-height: 1.7; margin-top: 1rem; }
+.note b { color: var(--text); }
+
+/* FOOTER */
+.footer { margin-top: 2rem; font-size: 11px; color: var(--faint); font-family: 'IBM Plex Mono', monospace; text-align: right; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="title">
+        Wingfoil Forecast
+        <div class="sub">4 spots · Rio de Janeiro · 10 dias à frente</div>
+      </div>
+      <span class="model-tag">GFS 13 km · Open-Meteo · windspeed_10m + windgusts_10m</span>
+    </div>
+    <div class="meta-row">
+      <span>Limiar: <b>rajada ≥ 14 kt</b></span>
+      <span>Janela manhã: <b>08h–11h</b></span>
+      <span>Janela tarde: <b>13h–16h</b></span>
+      <span>Timezone: <b>America/Sao_Paulo</b></span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="leg"><span class="leg-swatch" style="background:var(--strong-bg);border-color:var(--strong-border)"></span>Vento ≥ 14 kt e rajada ≥ 18 kt — Ótimo!</span>
+    <span class="leg"><span class="leg-swatch" style="background:var(--go-bg);border-color:var(--go-border)"></span>Rajada ≥ 14 kt — Vai!</span>
+    <span class="leg"><span class="leg-swatch" style="background:var(--maybe-bg);border-color:var(--maybe-border)"></span>Rajada 10–13 kt — Talvez</span>
+    <span class="leg"><span class="leg-swatch" style="background:var(--bad-bg);border-color:var(--bad-border)"></span>Rajada &lt; 10 kt — Fraco</span>
+    <span class="leg" style="margin-left:8px;font-size:11px">Cada célula: <b>vento médio</b> / ↑ rajada média / direção · Barra azul = % chuva</span>
+  </div>
+
+  <div id="spots-container"></div>
+
+  <div class="note">
+    <b>Modelo:</b> GFS (NOAA) 13 km via Open-Meteo — mesmo modelo que o Windguru GFS gratuito. Dados a <b>10 m de altitude</b>, sem downscaling local.
+    <b>Atenção Angra:</b> baía protegida; vento real costuma ser 15–25% menor que o GFS indica.
+    <b>Precisão:</b> dias 1–3 são confiáveis; dias 6–10 são tendência.
+    Valores são médias horárias das janelas selecionadas, não picos instantâneos.
+  </div>
+
+  <div class="footer" id="footer">Carregando…</div>
+</div>
+
+<script>
+const SPOTS = [
+  { name: 'Baía de Guanabara', sub: 'Praia do Flamengo · Rio de Janeiro', lat: -22.930387, lon: -43.158968 },
+  { name: 'Armação de Búzios', sub: 'Praia de Manguinhos · Búzios Vela Clube', lat: -22.757949, lon: -41.921844 },
+  { name: 'Ilha da Jipoia',    sub: 'Baía de Angra dos Reis · face externa', lat: -23.0833,   lon: -44.3167   },
+  { name: 'Enseada de Palmas', sub: 'Angra dos Reis',                        lat: -23.118167, lon: -44.092328 },
+];
+
+const MORNING_HOURS   = [8, 9, 10, 11];
+const AFTERNOON_HOURS = [13, 14, 15, 16];
+const DAYS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function degToDir(d) {
+  return ['N','NNE','NE','ENE','L','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'][Math.round(d / 22.5) % 16];
+}
+
+function avg(arr) {
+  if (!arr.length) return null;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+function windowStats(hourlyData, dateStr, targetHours) {
+  const speeds = [], gusts = [], dirs = [];
+  hourlyData.time.forEach((t, i) => {
+    if (!t.startsWith(dateStr)) return;
+    const h = parseInt(t.slice(11, 13));
+    if (!targetHours.includes(h)) return;
+    if (hourlyData.windspeed_10m[i]     != null) speeds.push(hourlyData.windspeed_10m[i]);
+    if (hourlyData.windgusts_10m[i]     != null) gusts.push(hourlyData.windgusts_10m[i]);
+    if (hourlyData.winddirection_10m[i] != null) dirs.push(hourlyData.winddirection_10m[i]);
+  });
+  if (!speeds.length) return null;
+  return { speed: avg(speeds), gust: avg(gusts), dir: degToDir(avg(dirs)) };
+}
+
+function verdict(speed, gust) {
+  if (gust == null)              return { cls: 'v-bad',    label: '—' };
+  if (speed >= 14 && gust >= 18) return { cls: 'v-strong', label: 'ÓTIMO!' };
+  if (gust >= 14)                return { cls: 'v-go',     label: 'VAI!' };
+  if (gust >= 10)                return { cls: 'v-maybe',  label: 'TALVEZ' };
+  return                                { cls: 'v-bad',    label: 'FRACO' };
+}
+
+function cellCls(speed, gust) {
+  if (gust == null)              return '';
+  if (speed >= 14 && gust >= 18) return 'v-strong-cell';
+  if (gust >= 14)                return 'v-go-cell';
+  if (gust >= 10)                return 'v-maybe-cell';
+  return '';
+}
+
+function rainBar(pct) {
+  if (!pct || pct < 15) return '';
+  return `<div class="rain-bar" style="width:${Math.min(100, pct)}%" title="Chuva ${pct}%"></div>`;
+}
+
+function buildCell(stats) {
+  if (!stats) return `<td class="window-cell"><span style="color:var(--faint);font-size:11px;font-family:'IBM Plex Mono',monospace">—</span></td>`;
+  const v = verdict(stats.speed, stats.gust);
+  return `<td class="window-cell ${cellCls(stats.speed, stats.gust)}">
+    <div class="cell-inner">
+      <span class="wind-val">${Math.round(stats.speed)} kt</span>
+      <span class="sep">·</span>
+      <span class="gust-val">↑${Math.round(stats.gust)} kt</span>
+      <span class="sep">·</span>
+      <span class="dir-val">${stats.dir}</span>
+      <span class="sep">·</span>
+      <span class="verdict ${v.cls}">${v.label}</span>
+    </div>
+  </td>`;
+}
+
+function getDailyRain(hourlyData, dateStr) {
+  const vals = [];
+  hourlyData.time.forEach((t, i) => {
+    if (t.startsWith(dateStr) && hourlyData.precipitation_probability[i] != null)
+      vals.push(hourlyData.precipitation_probability[i]);
+  });
+  return vals.length ? Math.round(Math.max(...vals)) : 0;
+}
+
+function renderSpot(spot, hourlyData) {
+  const dates = [...new Set(hourlyData.time.map(t => t.slice(0, 10)))].slice(0, 10);
+  let rows = '';
+  dates.forEach(dateStr => {
+    const dt    = new Date(dateStr + 'T12:00:00');
+    const dow   = DAYS_PT[dt.getDay()];
+    const ddate = `${dt.getDate()} ${MONTHS_PT[dt.getMonth()]}`;
+    const morn  = windowStats(hourlyData, dateStr, MORNING_HOURS);
+    const aftn  = windowStats(hourlyData, dateStr, AFTERNOON_HOURS);
+    rows += `<tr>
+      <td class="date-cell">
+        <span class="dow">${dow}</span><span class="ddate">${ddate}</span>
+      </td>
+      ${buildCell(morn)}
+      ${buildCell(aftn)}
+    </tr>`;
+  });
+
+  return `<div class="spot">
+    <div class="spot-head">
+      <div>
+        <div class="spot-name">${spot.name}</div>
+        <div class="spot-coord">${spot.sub}</div>
+      </div>
+      <div class="spot-coord">${spot.lat}, ${spot.lon}</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="date-col">Data</th>
+            <th class="window-header">Manhã 08–11h<span class="window-label">vento / ↑ rajada / dir</span></th>
+            <th class="window-header">Tarde 13–16h<span class="window-label">vento / ↑ rajada / dir</span></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+async function fetchSpot(spot) {
+  const params = new URLSearchParams({
+    latitude:        spot.lat,
+    longitude:       spot.lon,
+    hourly:          'windspeed_10m,windgusts_10m,winddirection_10m,precipitation_probability',
+    wind_speed_unit: 'kn',
+    timezone:        'America/Sao_Paulo',
+    forecast_days:   10,
+  });
+  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()).hourly;
+}
+
+async function main() {
+  const container = document.getElementById('spots-container');
+  const footer    = document.getElementById('footer');
+
+  container.innerHTML = SPOTS.map(s => `
+    <div class="spot">
+      <div class="spot-head"><div><div class="spot-name">${s.name}</div><div class="spot-coord">${s.sub}</div></div></div>
+      <table><tbody><tr class="loading-row"><td colspan="3">Carregando GFS…</td></tr></tbody></table>
+    </div>`).join('');
+
+  const results = await Promise.allSettled(SPOTS.map(fetchSpot));
+
+  container.innerHTML = results.map((r, i) => {
+    if (r.status === 'fulfilled') return renderSpot(SPOTS[i], r.value);
+    return `<div class="spot">
+      <div class="spot-head"><div class="spot-name">${SPOTS[i].name}</div></div>
+      <table><tbody><tr class="loading-row"><td colspan="3" style="color:#c0392b">
+        Erro ao carregar: ${r.reason?.message}
+      </td></tr></tbody></table>
+    </div>`;
+  }).join('');
+
+  const now = new Date();
+  footer.textContent = `Fonte: Open-Meteo GFS 13 km · ${now.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`;
+}
+
+main();
+</script>
+</body>
+</html>
